@@ -122,6 +122,20 @@ class ImportExport
         return $res;
     }
 
+    public function unserializeJobs($objects)
+    {
+        $count = 0;
+        $this->connection->runFailSafeTransaction(function () use ($objects, &$count) {
+            $importer = new ObjectImporter($this->connection);
+            foreach ($objects as $object) {
+                $importer->import(DirectorJob::class, $object)->store();
+                $count++;
+            }
+        });
+
+        return $count;
+    }
+
     public function unserializeImportSources($objects)
     {
         $count = 0;

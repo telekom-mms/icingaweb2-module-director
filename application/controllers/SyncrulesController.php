@@ -18,7 +18,17 @@ class SyncrulesController extends ActionController
     public function indexAction()
     {
         if ($this->getRequest()->isApiRequest()) {
-            $this->sendExport();
+            switch (strtolower($this->getRequest()->getMethod())) {
+                case 'get':
+                    $this->sendExport();
+                    break;
+                case 'post':
+                    $this->acceptImport($this->getRequest()->getRawBody());
+                    break;
+                default:
+                    $this->sendUnsupportedMethod();
+            }
+
             return;
         }
 
@@ -30,6 +40,11 @@ class SyncrulesController extends ActionController
             )->tabs(new ImportTabs())->activate('syncrule');
 
         (new SyncruleTable($this->db()))->renderTo($this);
+    }
+
+    protected function acceptImport($raw)
+    {
+        (new ImportExport($this->db()))->unserializeSyncRules(json_decode($raw));
     }
 
     /**
