@@ -38,7 +38,8 @@ class JobsController extends ActionController
 
     protected function acceptImport($raw)
     {
-        (new ImportExport($this->db()))->unserializeJobs(json_decode($raw));
+        $count = (new ImportExport($this->db()))->unserializeJobs(json_decode($raw));
+        $this->sendJson($this->getResponse(), ['imported' => $count]);
     }
 
     protected function sendExport()
