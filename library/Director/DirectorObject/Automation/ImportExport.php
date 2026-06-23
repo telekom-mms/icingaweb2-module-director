@@ -128,6 +128,11 @@ class ImportExport
         $this->connection->runFailSafeTransaction(function () use ($objects, &$count) {
             $importer = new ObjectImporter($this->connection);
             foreach ($objects as $object) {
+                if (isset($object->settings->source_name)) {
+                    $source = ImportSource::load($object->settings->source_name, $this->connection);
+                    unset($object->settings->source_name);
+                    $object->settings->source_id = $source->get('id');
+                }
                 $importer->import(DirectorJob::class, $object)->store();
                 $count++;
             }
