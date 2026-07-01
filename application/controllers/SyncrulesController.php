@@ -25,6 +25,9 @@ class SyncrulesController extends ActionController
                 case 'post':
                     $this->acceptImport($this->getRequest()->getRawBody());
                     break;
+                case 'delete':
+                    $this->deleteSyncRule($this->params->get('name'));
+                    break;
                 default:
                     $this->sendUnsupportedMethod();
             }
@@ -40,6 +43,26 @@ class SyncrulesController extends ActionController
             )->tabs(new ImportTabs())->activate('syncrule');
 
         (new SyncruleTable($this->db()))->renderTo($this);
+    }
+
+    protected function deleteSyncRule($name)
+    {
+        // Use direct SQL instead of SyncRule::load()->delete() to avoid ORM
+        // beforeDelete() / afterDelete() hooks that may throw exceptions in
+        // production Director installations (e.g. activity-log triggers).
+        $db = $this->db()->getDbAdapter();
+        $id = (int) $db->fetchOne(
+            $db->select()->from('sync_rule', 'id')->where('rule_name = ?', $name)
+        );
+        if (!$id) {
+            $this->sendJson($this->getResponse(), (object)[]);
+            return;
+        }
+        // Delete child rows first in dependency order.
+        $db->delete('sync_run', ['rule_id = ?' => $id]);
+        $db->delete('sync_property', ['rule_id = ?' => $id]);
+        $db->delete('sync_rule', ['id = ?' => $id]);
+        $this->sendJson($this->getResponse(), (object)[]);
     }
 
     protected function acceptImport($raw)

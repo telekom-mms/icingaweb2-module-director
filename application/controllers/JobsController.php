@@ -21,6 +21,9 @@ class JobsController extends ActionController
                 case 'post':
                     $this->acceptImport($this->getRequest()->getRawBody());
                     break;
+                case 'delete':
+                    $this->deleteJob($this->params->get('name'));
+                    break;
                 default:
                     $this->sendUnsupportedMethod();
             }
@@ -34,6 +37,22 @@ class JobsController extends ActionController
             ->tabs(new ImportTabs())->activate('jobs');
 
         (new JobTable($this->db()))->renderTo($this);
+    }
+
+    protected function deleteJob($name)
+    {
+        // Use direct SQL to avoid ORM hooks that may throw in production.
+        $db = $this->db()->getDbAdapter();
+        $id = (int) $db->fetchOne(
+            $db->select()->from('director_job', 'id')->where('job_name = ?', $name)
+        );
+        if (!$id) {
+            $this->sendJson($this->getResponse(), (object)[]);
+            return;
+        }
+        $db->delete('director_job_setting', ['job_id = ?' => $id]);
+        $db->delete('director_job', ['id = ?' => $id]);
+        $this->sendJson($this->getResponse(), (object)[]);
     }
 
     protected function acceptImport($raw)
