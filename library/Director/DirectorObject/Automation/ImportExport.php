@@ -133,6 +133,11 @@ class ImportExport
                     unset($object->settings->source_name);
                     $object->settings->source_id = $source->get('id');
                 }
+                if (isset($object->settings->rule_name)) {
+                    $rule = SyncRule::load($object->settings->rule_name, $this->connection);
+                    unset($object->settings->rule_name);
+                    $object->settings->rule_id = $rule->get('id');
+                }
                 $importer->import(DirectorJob::class, $object)->store();
                 $count++;
             }
